@@ -1,7 +1,7 @@
-local CurrentVehIdentifier = nil
-
-local ModifiedVehicles = {}
-local SlipperySurfaceMaterial = {
+local currentVehicle = 0
+local currentVehicleIdentifier = nil
+local modifiedVehicles = {}
+local slipperySurfaceMaterial = {
     [9] = "ROCK",
     [10] = "ROCK_MOSSY",
     [11] = "STONE",
@@ -34,61 +34,57 @@ local SlipperySurfaceMaterial = {
     [55] = "METAL_SOLID_SMALL",   -- Train Track
 }
 
-local IsOffroad = false
-local OffroadTicks = 0
-
 -- [ Threads ] --
 
 CreateThread(function()
+    local currentMaterial = 0
+    local isOffroad = false
+    local offroadTicks = 0
     while true do
         Wait(500)
-        if LocalPlayer.state.LoggedIn then
-            if CurrentVehicleData.Vehicle ~= 0 then
-                local surfaceMaterialIndex = GetVehicleWheelSurfaceMaterial(CurrentVehicleData.Vehicle, 1)
-                local IsSlippery = SlipperySurfaceMaterial[surfaceMaterialIndex]
+        if currentVehicle ~= 0 then
+            local surfaceMaterialIndex = GetVehicleWheelSurfaceMaterial(currentVehicle, 1)
+            local isSlippery = slipperySurfaceMaterial[surfaceMaterialIndex]
 
-                if IsSlippery and OffroadTicks < 5 then
-                    OffroadTicks = OffroadTicks + 1
-                elseif not IsSlippery and OffroadTicks >= 1 then
-                    OffroadTicks = OffroadTicks - 1
-                end
-
-                if IsSlippery and not IsOffroad and OffroadTicks > 3 then
-                    IsOffroad = true
-                    ToggleOffroadState(true)
-                elseif IsOffroad and OffroadTicks < 3 then
-                    IsOffroad = false
-                    ToggleOffroadState(false)
-                end
+            if isSlippery and offroadTicks < 5 then
+                offroadTicks = offroadTicks + 1
+            elseif not isSlippery and offroadTicks >= 1 then
+                offroadTicks = offroadTicks - 1
             end
-        else
-            Wait(500)
+
+            if isSlippery and not isOffroad and offroadTicks > 3 then
+                isOffroad = true
+                toggleOffroadState(true)
+            elseif isOffroad and offroadTicks < 3 then
+                isOffroad = false
+                toggleOffroadState(false)
+            end
         end
     end
 end)
 
 -- [ Functions ] --
 
-function GetVehicleHandling(pVehicleIdentifier, pCurrentVehicleHandle, pHandling)
+function getVehicleHandling(pVehicleIdentifier, pCurrentVehicleHandle, pHandling)
     if pVehicleIdentifier and pHandling then
-        if ModifiedVehicles[pVehicleIdentifier] ~= nil and ModifiedVehicles[pVehicleIdentifier][pHandling] ~= nil then
-            return true, ModifiedVehicles[pVehicleIdentifier][pHandling]
+        if modifiedVehicles[pVehicleIdentifier] ~= nil and modifiedVehicles[pVehicleIdentifier][pHandling] ~= nil then
+            return true, modifiedVehicles[pVehicleIdentifier][pHandling]
         else
             return false, GetVehicleHandlingFloat(pCurrentVehicleHandle, "CHandlingData", pHandling)
         end
     end
 end
 
-function SetVehicleHandling(pVehicleIdentifier, pCurrentVehicleHandle, pHandling, pFactor)
-    local isModified, fValue = GetVehicleHandling(pVehicleIdentifier, pCurrentVehicleHandle, pHandling)
+function setVehicleHandling(pVehicleIdentifier, pCurrentVehicleHandle, pHandling, pFactor)
+    local isModified, fValue = getVehicleHandling(pVehicleIdentifier, pCurrentVehicleHandle, pHandling)
     if not isModified then
         fValue = (fValue * pFactor)
     end
-    ModifiedVehicles[pVehicleIdentifier][pHandling] = fValue
+    modifiedVehicles[pVehicleIdentifier][pHandling] = fValue
     SetVehicleHandlingFloat(pCurrentVehicleHandle, "CHandlingData", pHandling, fValue)
 end
 
-function ProcessVehicleHandling(pCurrentVehicle)
+function processVehicleHandling(pCurrentVehicle)
     local vehicleIdentifier = GetVehiclePedIsIn(PlayerPedId()) --TODO: This should call the server and grab the vehicle identifier.
 
     if not vehicleIdentifier then
@@ -102,85 +98,98 @@ function ProcessVehicleHandling(pCurrentVehicle)
 
     if not vehicleIdentifier or vehicleIdentifier == "" then return end
 
-    CurrentVehIdentifier = vehicleIdentifier
+    currentVehicleIdentifier = vehicleIdentifier
     SetVehiclePetrolTankHealth(pCurrentVehicle, 4000.0)
     SetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fWeaponDamageMult", 5.500000)
     SetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fDeformationDamageMult", 1.000000)
 
-    local isModified, fSteeringLock = GetVehicleHandling(vehicleIdentifier, pCurrentVehicle, "fSteeringLock")
+    local isModified, fSteeringLock = getVehicleHandling(vehicleIdentifier, pCurrentVehicle, "fSteeringLock")
     if not isModified then
         fSteeringLock = math.ceil((fSteeringLock * 0.6)) + 0.1
     end
 
-    if not ModifiedVehicles[vehicleIdentifier] then
-        ModifiedVehicles[vehicleIdentifier] = {}
+    if not modifiedVehicles[vehicleIdentifier] then
+        modifiedVehicles[vehicleIdentifier] = {}
     end
 
-    ModifiedVehicles[vehicleIdentifier]["fSteeringLock"] = fSteeringLock
+    modifiedVehicles[vehicleIdentifier]["fSteeringLock"] = fSteeringLock
     SetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fSteeringLock", fSteeringLock)
 
     if IsThisModelABike(GetEntityModel(pCurrentVehicle)) then
-        SetVehicleHandling(vehicleIdentifier, pCurrentVehicle, "fTractionCurveMin", 0.6)
-        SetVehicleHandling(vehicleIdentifier, pCurrentVehicle, "fTractionCurveMax", 0.6) 
-        SetVehicleHandling(vehicleIdentifier, pCurrentVehicle, "fInitialDriveForce", 2.2)
-        SetVehicleHandling(vehicleIdentifier, pCurrentVehicle, "fBrakeForce", 1.4)
+        setVehicleHandling(vehicleIdentifier, pCurrentVehicle, "fTractionCurveMin", 0.6)
+        setVehicleHandling(vehicleIdentifier, pCurrentVehicle, "fTractionCurveMax", 0.6) 
+        setVehicleHandling(vehicleIdentifier, pCurrentVehicle, "fInitialDriveForce", 2.2)
+        setVehicleHandling(vehicleIdentifier, pCurrentVehicle, "fBrakeForce", 1.4)
         SetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fSuspensionReboundDamp", 5.000000)
         SetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fSuspensionCompDamp", 5.000000)
         SetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fSuspensionForce", 22.000000)
         SetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fCollisionDamageMult", 2.500000)
         SetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fEngineDamageMult", 0.120000)
     else
-        SetVehicleHandling(vehicleIdentifier, pCurrentVehicle, "fTractionCurveMin", 1.0)
-        SetVehicleHandling(vehicleIdentifier, pCurrentVehicle, "fBrakeForce", 0.5)
+        setVehicleHandling(vehicleIdentifier, pCurrentVehicle, "fTractionCurveMin", 1.0)
+        setVehicleHandling(vehicleIdentifier, pCurrentVehicle, "fBrakeForce", 0.5)
         SetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fEngineDamageMult", 0.250000)
         SetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fCollisionDamageMult", 2.900000)
     end
 
-    ModifiedVehicles[vehicleIdentifier].fInitialDriveMaxFlatVel = GetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fInitialDriveMaxFlatVel")
-    ModifiedVehicles[vehicleIdentifier].fTractionLossMult = GetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fTractionLossMult")
-    ModifiedVehicles[vehicleIdentifier].fLowSpeedTractionLossMult = GetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fLowSpeedTractionLossMult")
-    ModifiedVehicles[vehicleIdentifier].fDriveBiasFront = GetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fDriveBiasFront")
-    ModifiedVehicles[vehicleIdentifier].fDriveInertia = GetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fDriveInertia")
+    modifiedVehicles[vehicleIdentifier].fInitialDriveMaxFlatVel = GetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fInitialDriveMaxFlatVel")
+    modifiedVehicles[vehicleIdentifier].fTractionLossMult = GetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fTractionLossMult")
+    modifiedVehicles[vehicleIdentifier].fLowSpeedTractionLossMult = GetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fLowSpeedTractionLossMult")
+    modifiedVehicles[vehicleIdentifier].fDriveBiasFront = GetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fDriveBiasFront")
+    modifiedVehicles[vehicleIdentifier].fDriveInertia = GetVehicleHandlingFloat(pCurrentVehicle, "CHandlingData", "fDriveInertia")
+
+    -- print("fTractionLoss", modifiedVehicles[currentVehicleIdentifier].fTractionLossMult)
+    -- print("fTractionCurveMin", modifiedVehicles[currentVehicleIdentifier].fTractionCurveMin)
+    -- print("fLowSpeedTractionLossMult", modifiedVehicles[currentVehicleIdentifier].fLowSpeedTractionLossMult)
 
     SetVehicleHasBeenOwnedByPlayer(pCurrentVehicle, true)
 end
 
-function ToggleOffroadState(pState)
-    local vehClass = GetVehicleClass(CurrentVehicleData.Vehicle)
-    if CurrentVehIdentifier ~= nil and (vehClass ~= 9 and vehClass ~= 8) then
-        local isAWD = (ModifiedVehicles[CurrentVehIdentifier].fDriveBiasFront > 0 and ModifiedVehicles[CurrentVehIdentifier].fDriveBiasFront < 1)
+function toggleOffroadState(pState)
+    local vehClass = GetVehicleClass(currentVehicle)
+    if currentVehicleIdentifier ~= nil and (vehClass ~= 9 and vehClass ~= 8) then
+        local isAWD = (modifiedVehicles[currentVehicleIdentifier].fDriveBiasFront > 0 and modifiedVehicles[currentVehicleIdentifier].fDriveBiasFront < 1)
         local lowSpeedTractionFactor = isAWD and 1.5 or 1.5
         local tractionFactor = isAWD and 0.8 or 0.9
 
-        SetVehicleHandlingFloat(CurrentVehicleData.Vehicle, "CHandlingData", "fTractionLossMult", ModifiedVehicles[CurrentVehIdentifier].fTractionLossMult * (pState and 1.5 or 1.0))
-        SetVehicleHandlingFloat(CurrentVehicleData.Vehicle, "CHandlingData", "fTractionCurveMin",
-        ModifiedVehicles[CurrentVehIdentifier].fTractionCurveMin * (pState and tractionFactor or 1.0))
-        SetVehicleHandlingFloat(CurrentVehicleData.Vehicle, "CHandlingData", "fLowSpeedTractionLossMult",
-        ModifiedVehicles[CurrentVehIdentifier].fLowSpeedTractionLossMult * (pState and lowSpeedTractionFactor or 1.0))
+        -- print("fTractionLoss", modifiedVehicles[currentVehicleIdentifier].fTractionLossMult * (pState and 1.5 or 1.0))
+        -- print("fTractionCurveMin", modifiedVehicles[currentVehicleIdentifier].fTractionCurveMin * (pState and tractionFactor or 1.0))
+        -- print("fLowSpeedTractionLossMult", modifiedVehicles[currentVehicleIdentifier].fLowSpeedTractionLossMult * (pState and lowSpeedTractionFactor or 1.0))
+
+        SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fTractionLossMult", modifiedVehicles[currentVehicleIdentifier].fTractionLossMult * (pState and 1.5 or 1.0))
+        SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fTractionCurveMin",
+        modifiedVehicles[currentVehicleIdentifier].fTractionCurveMin * (pState and tractionFactor or 1.0))
+        SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fLowSpeedTractionLossMult",
+        modifiedVehicles[currentVehicleIdentifier].fLowSpeedTractionLossMult * (pState and lowSpeedTractionFactor or 1.0))
     end
 end
 
--- [ Events ] --
-
-RegisterNetEvent("mercy-threads/entered-vehicle", function()
-    CurrentVehicleData.Vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+AddEventHandler("baseevents:enteredVehicle", function(pCurrentVehicle, currentSeat, vehicleDisplayName)
+    currentVehicle = pCurrentVehicle
 
     SetPedConfigFlag(PlayerPedId(), 35, false)
 
-    if CurrentVehicleData.IsDriver then
-        ProcessVehicleHandling(CurrentVehicleData.Vehicle)
+    local vehicleClass = GetVehicleClass(pCurrentVehicle)
+    if vehicleClass == 15 or vehicleClass == 16 then
+        SetAudioSubmixEffectParamInt(0, 0, `enabled`, 1)
+    end
+
+    if currentSeat == -1 then
+        processVehicleHandling(pCurrentVehicle)
     end
 end)
 
-RegisterNetEvent("mercy-threads/exited-vehicle", function()
-    OffroadTicks = 0
-    CurrentVehIdentifier = nil
+AddEventHandler("baseevents:leftVehicle", function(pCurrentVehicle, pCurrentSeat, vehicleDisplayName)
+    currentVehicle = 0
+    offroadTicks = 0
+    currentVehicleIdentifier = nil
 
-    ToggleOffroadState(false)
+    SetAudioSubmixEffectParamInt(0, 0, `enabled`, 0)
+    toggleOffroadState(false)
 end)
 
 AddEventHandler("baseevents:vehicleChangedSeat", function(pCurrentVehicle, pCurrentSeat, previousSeat)
     if pCurrentSeat == -1 then
-        ProcessVehicleHandling(pCurrentVehicle)
+        processVehicleHandling(pCurrentVehicle)
     end
 end)

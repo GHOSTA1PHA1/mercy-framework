@@ -18,7 +18,6 @@ end)
 
 RegisterNetEvent('mercy-phone/client/dark/start-drop-off', function(Id)
     local Result = CallbackModule.SendCallback("mercy-phone/server/dark/get-drop-off-location", Id)
-    if not Result then return end
     local NearCoords = false
     SetNewWaypoint(Result.Coords)
     local Blip = BlipModule.CreateBlip('dark-pickup', Result.Coords, 'Item Pickup', 586, 47, false, 1.0)

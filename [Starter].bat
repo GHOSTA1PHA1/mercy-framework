@@ -7,4 +7,5 @@ timeout /t 3 /nobreak >nul
 color 07
 cls
 
-C:\Users\Administrator\Desktop\mercy-frameworkk\artifacts\FXServer.exe +exec cfg/server.cfg
+"C:\Users\GHOST\Desktop\New folder\mercy-framework-main\FXServer.exe" +exec cfg/server.cfg
+pause

@@ -156,7 +156,6 @@ ServerConfig.DarkItems = {
         Icon = 'fas fa-user-secret',
         Name = 'VPN',
         Label = 'VPN',
-        Hidden = false,
         Payment = {
             Amount = 20,
             Label = 'Shungite'
@@ -172,25 +171,8 @@ ServerConfig.DarkItems = {
         Icon = 'fas fa-clipboard-list',
         Name = 'darkmarketdeliveries',
         Label = 'Delivery List',
-        Hidden = false,
         Payment = {
             Amount = 10,
-            Label = 'Shungite'
-        },
-        DropOffs = {
-            {
-                Label = 'Drop Off 1',
-                Coords = vector3(508.83, 3099.87, 41.31),
-            },
-        },
-    },
-    {
-        Icon = 'fas fa-laptop',
-        Name = 'heist-laptop-green',
-        Label = 'Laptop Green',
-        Hidden = true, -- Hide from phone market
-        Payment = {
-            Amount = 15,
             Label = 'Shungite'
         },
         DropOffs = {

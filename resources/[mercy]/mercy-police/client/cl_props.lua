@@ -39,7 +39,7 @@ CreateThread(function()
 end)
 
 function CreateBarricade(Model, Coords, Heading)
-    if not FunctionModule.RequestModel(Model) then return end
+    if not FunctionsModule.RequestModel(Model) then return end
 
     local BarricadeObject = CreateObject(Model, Coords.x, Coords.y, Coords.z, false, false, false)
     SetEntityHeading(BarricadeObject, Heading + 0.0)
@@ -55,6 +55,8 @@ function CreateSpeedZone(Id, Coords)
 
     local Node = AddRoadNodeSpeedZone(Coords.x, Coords.y, Coords.z, 4.0, 0.0, false)
     SpeedZones[Id] = Node
+
+    print("Created speed zone 10 radius.")
 end
 
 function DeleteSpeedZone(Id)
@@ -69,6 +71,7 @@ RegisterNetEvent("mercy-police/client/open-barricademenu", function(Props, Close
     end
 
     local MenuItems = {}
+
     for k, v in pairs(Props) do
         table.insert(MenuItems, {
             Title = v.Label,
@@ -77,7 +80,7 @@ RegisterNetEvent("mercy-police/client/open-barricademenu", function(Props, Close
         })
     end
 
-    if ClosestData and next(ClosestData) ~= nil and PlayerData.Job.HighCommand then
+    if ClosestData and PlayerData.Job['HighCommand'] then
         table.insert(MenuItems, {
             Icon = "info-circle",
             Title = "Prop Info (" .. ClosestData.Label .. ")",
@@ -143,7 +146,7 @@ RegisterNetEvent("mercy-police/client/set-prop-data", function(Type, BarricadeId
 end)
 
 exports("IsEntityLookingAtBarricade", function()
-    local Entity, EntityType, EntityCoords = FunctionModule.GetEntityPlayerIsLookingAt(3.0, 0.2, 286, PlayerPedId())
+    local Entity, EntityType, EntityCoords = FunctionsModule.GetEntityPlayerIsLookingAt(3.0, 0.2, 286, PlayerPedId())
     if not Entity or EntityType == 0 then
         return false, nil
     end
